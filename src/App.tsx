@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ThreeScene, type ThreeSceneRef } from './components/ThreeScene'
 import { PanoramaViewer } from './components/PanoramaViewer'
 import { NavigationControls } from './components/NavigationControls'
+import { Minimap } from './components/Minimap'
 import { useSweepsData } from './hooks/useSweepsData'
 import { useViewURL } from './hooks/useViewURL'
 import { calculateRequiredResolution } from './utils/lod'
@@ -19,6 +20,7 @@ function App() {
   // Resolution management
   const [currentResolution, setCurrentResolution] = useState<TextureResolution>('512')
   const [resolutionMode, setResolutionMode] = useState<'auto' | TextureResolution>('auto')
+  const [cameraDirection, setCameraDirection] = useState<THREE.Vector3>(new THREE.Vector3(0, 0, 1))
   const isLoadingTexturesRef = useRef(false)
   const pendingResolutionRef = useRef<TextureResolution | null>(null)
   const fovChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -230,6 +232,30 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentSweep])
 
+  // Update camera direction for minimap
+  useEffect(() => {
+    const updateDirection = () => {
+      if (threeSceneRef.current) {
+        const direction = threeSceneRef.current.getCameraDirection()
+        if (direction) {
+          setCameraDirection(direction.clone())
+        }
+      }
+    }
+
+    // Update direction every frame
+    let animationId: number
+    function animate() {
+      updateDirection()
+      animationId = requestAnimationFrame(animate)
+    }
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animationId)
+    }
+  }, [])
+
   // Loading state
   if (loading) {
     return (
@@ -268,7 +294,7 @@ function App() {
   }
 
   // Always render ThreeScene so it can initialize
-  // Only render PanoramaViewer and NavigationControls when we have both scene and currentSweep
+  // Only render PanoramaViewer, NavigationControls, and Minimap when we have both scene and currentSweep
   return (
     <>
       <ThreeScene
@@ -290,6 +316,12 @@ function App() {
             resolution={currentResolution}
             resolutionMode={resolutionMode}
             onResolutionModeChange={handleResolutionModeChange}
+          />
+          <Minimap
+            sweeps={sweeps}
+            currentSweep={currentSweep}
+            cameraDirection={cameraDirection}
+            onNavigate={handleNavigate}
           />
         </>
       )}
