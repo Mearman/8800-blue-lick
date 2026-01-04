@@ -11,6 +11,7 @@ export interface ThreeSceneRef {
   getCamera: () => THREE.PerspectiveCamera | null
   getScene: () => THREE.Scene | null
   setCameraPosition: (position: THREE.Vector3, target: THREE.Vector3) => void
+  setCameraOrientation: (position: THREE.Vector3, pitch: number, yaw: number) => void
   getFov: () => number
   setFov: (fov: number) => void
 }
@@ -50,6 +51,24 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
         setCameraPosition: (position: THREE.Vector3, target: THREE.Vector3) => {
           if (cameraRef.current && controlsRef.current) {
             cameraRef.current.position.copy(position)
+            controlsRef.current.target.copy(target)
+            controlsRef.current.update()
+          }
+        },
+        setCameraOrientation: (position: THREE.Vector3, pitch: number, yaw: number) => {
+          if (cameraRef.current && controlsRef.current) {
+            // Set camera position
+            cameraRef.current.position.copy(position)
+
+            // Calculate direction vector from pitch and yaw
+            const direction = new THREE.Vector3(
+              Math.cos(pitch) * Math.sin(yaw),
+              Math.sin(pitch),
+              Math.cos(pitch) * Math.cos(yaw)
+            )
+
+            // Set target to position + direction (look in that direction)
+            const target = position.clone().add(direction)
             controlsRef.current.target.copy(target)
             controlsRef.current.update()
           }
