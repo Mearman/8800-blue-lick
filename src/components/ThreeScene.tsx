@@ -14,6 +14,7 @@ export interface ThreeSceneRef {
   setCameraOrientation: (position: THREE.Vector3, pitch: number, yaw: number) => void
   getFov: () => number
   setFov: (fov: number) => void
+  getCameraDirection: () => THREE.Vector3 | null
 }
 
 /**
@@ -85,6 +86,14 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
               onFovChangeRef.current(clampedFov)
             }
           }
+        },
+        getCameraDirection: () => {
+          if (cameraRef.current) {
+            const direction = new THREE.Vector3()
+            cameraRef.current.getWorldDirection(direction)
+            return direction
+          }
+          return null
         },
       }),
       [sceneReady] // Update when scene is ready
