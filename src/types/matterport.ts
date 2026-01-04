@@ -44,4 +44,5 @@ export interface ViewURLState {
   z: number
   pitch: number
   yaw: number
+  fov?: number
 }
