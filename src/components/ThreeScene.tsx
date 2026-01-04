@@ -143,6 +143,18 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
           if (onFovChangeRef.current) {
             onFovChangeRef.current(newFov)
           }
+
+          // Also notify of camera change to update URL with new FOV
+          if (onCameraChangeRef.current && cameraRef.current) {
+            const position = cameraRef.current.position
+            const direction = new THREE.Vector3()
+            cameraRef.current.getWorldDirection(direction)
+
+            const pitch = Math.asin(direction.y)
+            const yaw = Math.atan2(direction.x, direction.z)
+
+            onCameraChangeRef.current(position.clone(), pitch, yaw)
+          }
         }
       }
 
