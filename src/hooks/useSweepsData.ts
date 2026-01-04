@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react'
 import type { Sweep } from '../types/matterport'
 
 /**
+ * Normalize sweep data to handle edge cases
+ * - Forces all room -1 (exterior) sweeps to floor 0
+ */
+function normalizeSweeps(sweeps: Sweep[]): Sweep[] {
+  return sweeps.map((sweep) => ({
+    ...sweep,
+    // Force room -1 exterior sweeps to floor 0 for consistency
+    floor_index: sweep.room_index === -1 ? 0 : sweep.floor_index,
+  }))
+}
+
+/**
  * React hook to load and parse Matterport sweeps metadata
  * @returns Object containing sweeps array, loading state, and error
  */
@@ -23,7 +35,13 @@ export function useSweepsData() {
         }
         const data: Sweep[] = await response.json()
         console.log('useSweepsData: Data loaded', { count: data.length, first: data[0] })
-        setSweeps(data)
+
+        // Normalize data to handle edge cases
+        const normalized = normalizeSweeps(data)
+        const roomMinusOneCount = data.filter((s) => s.room_index === -1).length
+        console.log('useSweepsData: Normalized data', { roomMinusOneForcedToFloor0: roomMinusOneCount })
+
+        setSweeps(normalized)
         setLoading(false)
         console.log('useSweepsData: State updated')
       } catch (err) {
