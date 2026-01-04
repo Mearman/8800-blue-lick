@@ -705,10 +705,11 @@ export function Minimap({
           </div>
         )}
 
-        {viewMode === '2d' && totalSweepsInRoom > 1 && (
+        {viewMode === '2d' && totalSweepsInRoom >= 1 && (
           <div className="floor-controls">
             <button
               onClick={goToPrevSweep}
+              disabled={totalSweepsInRoom <= 1}
               title="Previous sweep in room"
             >
               ← Prev
@@ -718,6 +719,7 @@ export function Minimap({
             </span>
             <button
               onClick={goToNextSweep}
+              disabled={totalSweepsInRoom <= 1}
               title="Next sweep in room"
             >
               Next →
