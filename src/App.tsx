@@ -4,7 +4,9 @@ import { PanoramaViewer } from './components/PanoramaViewer'
 import { NavigationControls } from './components/NavigationControls'
 import { useSweepsData } from './hooks/useSweepsData'
 import { useViewURL } from './hooks/useViewURL'
+import { calculateRequiredResolution } from './utils/lod'
 import type { Sweep, ViewURLState } from './types/matterport'
+import type { TextureResolution } from './utils/textureLoader'
 import * as THREE from 'three'
 
 function App() {
@@ -14,6 +16,22 @@ function App() {
   const threeSceneRef = useRef<ThreeSceneRef>(null)
   const lastCameraUpdateRef = useRef<number>(0)
   const pendingURLStateRef = useRef<ViewURLState | null>(null)
+
+  // Resolution management
+  const [currentResolution, setCurrentResolution] = useState<TextureResolution>('512')
+  const [resolutionMode, setResolutionMode] = useState<'auto' | TextureResolution>('auto')
+  const isLoadingTexturesRef = useRef(false)
+  const pendingResolutionRef = useRef<TextureResolution | null>(null)
+  const fovChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reset resolution to 512 when navigating
+  const prevSweepRef = useRef<Sweep | null>(null)
+  useEffect(() => {
+    if (currentSweep && currentSweep !== prevSweepRef.current) {
+      setCurrentResolution('512')
+      prevSweepRef.current = currentSweep
+    }
+  }, [currentSweep])
 
   // Use a callback ref to get notified when the ref changes
   const setThreeSceneRef = (ref: ThreeSceneRef | null) => {
@@ -114,6 +132,53 @@ function App() {
     const sweep = sweeps.find((s) => s.sweep_uuid === sweepUuid)
     if (sweep) {
       setCurrentSweep(sweep)
+      // Reset to low resolution on navigation for instant display
+      setCurrentResolution('512')
+    }
+  }
+
+  // Handle FOV changes with debounced texture updates
+  const handleFovChange = (fov: number) => {
+    // Skip if in manual resolution mode
+    if (resolutionMode !== 'auto') return
+
+    // Clear existing timeout
+    if (fovChangeTimeoutRef.current) {
+      clearTimeout(fovChangeTimeoutRef.current)
+    }
+
+    // Calculate required resolution based on new FOV
+    const requiredResolution = calculateRequiredResolution(fov)
+
+    // Debounce to prevent excessive loading during scroll
+    fovChangeTimeoutRef.current = setTimeout(() => {
+      // Only update if resolution actually changed
+      if (requiredResolution !== currentResolution && !isLoadingTexturesRef.current) {
+        pendingResolutionRef.current = requiredResolution
+        isLoadingTexturesRef.current = true
+
+        // Update resolution state
+        setCurrentResolution(requiredResolution)
+        pendingResolutionRef.current = null
+        isLoadingTexturesRef.current = false
+      }
+    }, 300) // 300ms delay
+  }
+
+  // Handle resolution mode changes
+  const handleResolutionModeChange = (newMode: 'auto' | TextureResolution) => {
+    setResolutionMode(newMode)
+
+    if (newMode === 'auto') {
+      // Trigger FOV-based resolution calculation
+      if (threeSceneRef.current) {
+        const currentFov = threeSceneRef.current.getFov()
+        const requiredResolution = calculateRequiredResolution(currentFov)
+        setCurrentResolution(requiredResolution)
+      }
+    } else {
+      // Manual mode: use selected resolution
+      setCurrentResolution(newMode)
     }
   }
 
@@ -202,11 +267,26 @@ function App() {
   // Only render PanoramaViewer and NavigationControls when we have both scene and currentSweep
   return (
     <>
-      <ThreeScene ref={setThreeSceneRef} onCameraChange={handleCameraChange} />
+      <ThreeScene
+        ref={setThreeSceneRef}
+        onCameraChange={handleCameraChange}
+        onFovChange={handleFovChange}
+      />
       {scene && currentSweep && (
         <>
-          <PanoramaViewer sweepUuid={currentSweep.sweep_uuid} scene={scene} />
-          <NavigationControls sweeps={sweeps} currentSweep={currentSweep} onNavigate={handleNavigate} />
+          <PanoramaViewer
+            sweepUuid={currentSweep.sweep_uuid}
+            scene={scene}
+            resolution={currentResolution}
+          />
+          <NavigationControls
+            sweeps={sweeps}
+            currentSweep={currentSweep}
+            onNavigate={handleNavigate}
+            resolution={currentResolution}
+            resolutionMode={resolutionMode}
+            onResolutionModeChange={handleResolutionModeChange}
+          />
         </>
       )}
     </>
