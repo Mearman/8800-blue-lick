@@ -44,6 +44,8 @@ async function loadTiledTexture(
     const loader = new THREE.TextureLoader()
     const texture = await loader.loadAsync(tileUrls[0])
     texture.colorSpace = THREE.SRGBColorSpace
+    texture.minFilter = THREE.NearestFilter
+    texture.magFilter = THREE.NearestFilter
     return texture
   }
 
@@ -109,8 +111,8 @@ async function loadTiledTexture(
   // Create texture from canvas
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
-  texture.minFilter = THREE.LinearFilter
-  texture.magFilter = THREE.LinearFilter
+  texture.minFilter = THREE.NearestFilter
+  texture.magFilter = THREE.NearestFilter
 
   return texture
 }

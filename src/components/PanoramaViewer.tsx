@@ -49,7 +49,8 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
         const textures = await loadCubemapTextures(sweepUuid, '512')
 
         // Create cube geometry (inside-out for viewing from center)
-        geometry = new THREE.BoxGeometry(10, 10, 10)
+        // Larger cube (50 vs 10) reduces vertex distortion at wide FOV by moving faces further away
+        geometry = new THREE.BoxGeometry(50, 50, 50)
 
         // Create materials for each face
         materials = textures.map(
