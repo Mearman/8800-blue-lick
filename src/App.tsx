@@ -14,7 +14,6 @@ function App() {
   const [currentSweep, setCurrentSweep] = useState<Sweep | null>(null)
   const [scene, setScene] = useState<THREE.Scene | null>(null)
   const threeSceneRef = useRef<ThreeSceneRef>(null)
-  const lastCameraUpdateRef = useRef<number>(0)
   const pendingURLStateRef = useRef<ViewURLState | null>(null)
 
   // Resolution management
@@ -117,11 +116,6 @@ function App() {
   // Handle camera changes and update URL
   const handleCameraChange = (position: THREE.Vector3, pitch: number, yaw: number) => {
     if (!currentSweep) return
-
-    // Throttle updates to avoid excessive URL changes
-    const now = Date.now()
-    if (now - lastCameraUpdateRef.current < THROTTLE_MS) return
-    lastCameraUpdateRef.current = now
 
     // Get current FOV
     const currentFov = threeSceneRef.current?.getFov() || 75
@@ -302,7 +296,5 @@ function App() {
     </>
   )
 }
-
-const THROTTLE_MS = 50 // Throttle camera updates to every 50ms
 
 export default App
