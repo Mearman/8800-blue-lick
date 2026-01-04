@@ -51,12 +51,18 @@ function App() {
     if (sweep) {
       setCurrentSweep(sweep)
 
-      // Restore camera position after scene is ready
+      // Restore camera position, orientation, and FOV after scene is ready
       setTimeout(() => {
         if (threeSceneRef.current) {
           const position = new THREE.Vector3(state.x, state.y, state.z)
-          const target = new THREE.Vector3(0, 0, 0) // Look at center
-          threeSceneRef.current.setCameraPosition(position, target)
+
+          // Restore orientation using pitch and yaw
+          threeSceneRef.current.setCameraOrientation(position, state.pitch, state.yaw)
+
+          // Restore FOV if provided
+          if (state.fov !== undefined) {
+            threeSceneRef.current.setFov(state.fov)
+          }
         }
       }, 100)
     }
@@ -117,6 +123,9 @@ function App() {
     if (now - lastCameraUpdateRef.current < DEBOUNCE_MS) return
     lastCameraUpdateRef.current = now
 
+    // Get current FOV
+    const currentFov = threeSceneRef.current?.getFov() || 75
+
     updateURL({
       sweep: currentSweep.sweep_uuid,
       x: position.x,
@@ -124,6 +133,7 @@ function App() {
       z: position.z,
       pitch,
       yaw,
+      fov: currentFov,
     })
   }
 
