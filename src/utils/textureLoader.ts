@@ -96,8 +96,9 @@ async function loadTiledTexture(
   loadResults.forEach(({ img, row, col, success }) => {
     if (success) {
       // Transpose coordinates: swap row and col
-      const x = col * tileSize
-      const y = row * tileSize
+      // row maps to X, col maps to Y (diagonal reflection)
+      const x = row * tileSize
+      const y = col * tileSize
       ctx.drawImage(img, x, y, tileSize, tileSize)
       loadedCount++
     }
