@@ -29,6 +29,7 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
     const controlsRef = useRef<OrbitControls | null>(null)
     const onCameraChangeRef = useRef(onCameraChange)
     const onFovChangeRef = useRef(onFovChange)
+    const isInteractingRef = useRef(false)
     const [sceneReady, setSceneReady] = useState(false)
 
     // FOV constraints
@@ -157,6 +158,26 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
       controls.target.set(0, 0, 1) // Look at +Z direction
       controlsRef.current = controls
 
+      // Track user interaction state
+      controls.addEventListener('start', () => {
+        isInteractingRef.current = true
+      })
+
+      controls.addEventListener('end', () => {
+        isInteractingRef.current = false
+        // Send one final update when interaction ends
+        if (onCameraChangeRef.current && cameraRef.current) {
+          const position = cameraRef.current.position
+          const direction = new THREE.Vector3()
+          cameraRef.current.getWorldDirection(direction)
+
+          const pitch = Math.asin(direction.y)
+          const yaw = Math.atan2(direction.x, direction.z)
+
+          onCameraChangeRef.current(position.clone(), pitch, yaw)
+        }
+      })
+
       // Animation loop
       let animationFrameId: number
       function animate() {
@@ -164,8 +185,8 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
 
         controls.update()
 
-        // Notify parent of camera changes
-        if (onCameraChangeRef.current && cameraRef.current) {
+        // Only notify parent of camera changes during active interaction (not damping coast)
+        if (isInteractingRef.current && onCameraChangeRef.current && cameraRef.current) {
           const position = cameraRef.current.position
           const direction = new THREE.Vector3()
           cameraRef.current.getWorldDirection(direction)
