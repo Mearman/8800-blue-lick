@@ -38,3 +38,13 @@ dist-ssr
 
 # TypeScript
 *.tsbuildinfo
+
+# Playwright
+test-results
+playwright-report
+playwright/.cache
+
+# Test screenshots
+*-screenshot.png
+test-screenshot.png
+debug-screenshot.png
