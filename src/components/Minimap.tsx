@@ -35,9 +35,41 @@ export function Minimap({
   const isInitializingRef = useRef(false)
   const modelCenterRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0))
   const modelSizeRef = useRef<number>(50)
+  const isRoomChangeFromButtonRef = useRef(false)
 
   const floors = getFloors(sweeps)
   const totalFloors = floors.length
+
+  // Get unique room indices for a specific floor
+  const getRoomsOnFloor = useCallback((floorIndex: number): number[] => {
+    const rooms = new Set(
+      sweeps
+        .filter((s) => s.floor_index === floorIndex && s.room_index !== -1)
+        .map((s) => s.room_index)
+    )
+    return Array.from(rooms).sort((a, b) => a - b)
+  }, [sweeps])
+
+  // Get sweeps in a specific room on a specific floor
+  const getSweepsInRoom = useCallback(
+    (floorIndex: number, roomIndex: number): Sweep[] => {
+      return sweeps.filter(
+        (s) => s.floor_index === floorIndex && s.room_index === roomIndex
+      )
+    },
+    [sweeps]
+  )
+
+  const [currentRoom, setCurrentRoom] = useState<number | null>(null)
+  const [currentSweepIndex, setCurrentSweepIndex] = useState<number>(0)
+
+  const roomsOnCurrentFloor = getRoomsOnFloor(currentFloor)
+  const totalRooms = roomsOnCurrentFloor.length
+  const currentRoomIndex = currentRoom !== null ? roomsOnCurrentFloor.indexOf(currentRoom) : -1
+
+  const sweepsInCurrentRoom =
+    currentRoom !== null ? getSweepsInRoom(currentFloor, currentRoom) : []
+  const totalSweepsInRoom = sweepsInCurrentRoom.length
 
   // Initialize Three.js scene when DOM element is ready
   const setMinimapRef = useCallback((node: HTMLDivElement | null) => {
@@ -487,12 +519,67 @@ export function Minimap({
     setCurrentFloor((f) => Math.min(totalFloors - 1, f + 1))
   }, [totalFloors])
 
-  // Auto-switch floor when navigating in 2D mode
+  // Room cycling
+  const goToPrevRoom = useCallback(() => {
+    if (currentRoomIndex > 0) {
+      isRoomChangeFromButtonRef.current = true
+      setCurrentRoom(roomsOnCurrentFloor[currentRoomIndex - 1])
+    }
+  }, [currentRoomIndex, roomsOnCurrentFloor])
+
+  const goToNextRoom = useCallback(() => {
+    if (currentRoomIndex < totalRooms - 1) {
+      isRoomChangeFromButtonRef.current = true
+      setCurrentRoom(roomsOnCurrentFloor[currentRoomIndex + 1])
+    }
+  }, [currentRoomIndex, totalRooms, roomsOnCurrentFloor])
+
+  // Sweep cycling within room
+  const goToPrevSweep = useCallback(() => {
+    if (sweepsInCurrentRoom.length > 0) {
+      const newIndex = currentSweepIndex > 0 ? currentSweepIndex - 1 : sweepsInCurrentRoom.length - 1
+      setCurrentSweepIndex(newIndex)
+      onNavigate(sweepsInCurrentRoom[newIndex].sweep_uuid)
+    }
+  }, [sweepsInCurrentRoom, currentSweepIndex, onNavigate])
+
+  const goToNextSweep = useCallback(() => {
+    if (sweepsInCurrentRoom.length > 0) {
+      const newIndex = currentSweepIndex < sweepsInCurrentRoom.length - 1 ? currentSweepIndex + 1 : 0
+      setCurrentSweepIndex(newIndex)
+      onNavigate(sweepsInCurrentRoom[newIndex].sweep_uuid)
+    }
+  }, [sweepsInCurrentRoom, currentSweepIndex, onNavigate])
+
+  // Auto-switch floor and room when navigating in 2D mode
   useEffect(() => {
     if (currentSweep && viewMode === '2d') {
       setCurrentFloor(currentSweep.floor_index)
+      if (currentSweep.room_index !== -1) {
+        setCurrentRoom(currentSweep.room_index)
+      }
+      // Update sweep index within current room
+      if (currentRoom !== null) {
+        const roomSweeps = getSweepsInRoom(currentSweep.floor_index, currentRoom)
+        const newIndex = roomSweeps.findIndex((s) => s.sweep_uuid === currentSweep.sweep_uuid)
+        if (newIndex !== -1) {
+          setCurrentSweepIndex(newIndex)
+        }
+      }
     }
-  }, [currentSweep, viewMode])
+  }, [currentSweep, viewMode, currentRoom, getSweepsInRoom])
+
+  // Navigate to first sweep when room changes via button click
+  useEffect(() => {
+    if (currentRoom !== null && viewMode === '2d' && isRoomChangeFromButtonRef.current) {
+      const roomSweeps = getSweepsInRoom(currentFloor, currentRoom)
+      if (roomSweeps.length > 0) {
+        setCurrentSweepIndex(0)
+        onNavigate(roomSweeps[0].sweep_uuid)
+      }
+      isRoomChangeFromButtonRef.current = false // Reset flag
+    }
+  }, [currentRoom, currentFloor, viewMode, getSweepsInRoom, onNavigate])
 
   return (
     <div className={`minimap-container${isExpanded ? ' expanded' : ''}`}>
@@ -538,6 +625,50 @@ export function Minimap({
               onClick={goToNextFloor}
               disabled={currentFloor === totalFloors - 1}
               title="Next floor"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+
+        {viewMode === '2d' && totalRooms > 1 && (
+          <div className="floor-controls">
+            <button
+              onClick={goToPrevRoom}
+              disabled={currentRoomIndex <= 0}
+              title="Previous room"
+            >
+              ← Prev
+            </button>
+            <span>
+              {currentRoomIndex >= 0
+                ? `Room ${currentRoomIndex + 1} of ${totalRooms}`
+                : `${totalRooms} rooms`}
+            </span>
+            <button
+              onClick={goToNextRoom}
+              disabled={currentRoomIndex >= totalRooms - 1 || currentRoomIndex === -1}
+              title="Next room"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+
+        {viewMode === '2d' && totalSweepsInRoom > 1 && (
+          <div className="floor-controls">
+            <button
+              onClick={goToPrevSweep}
+              title="Previous sweep in room"
+            >
+              ← Prev
+            </button>
+            <span>
+              Sweep {currentSweepIndex + 1} of {totalSweepsInRoom}
+            </span>
+            <button
+              onClick={goToNextSweep}
+              title="Next sweep in room"
             >
               Next →
             </button>
