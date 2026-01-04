@@ -21,6 +21,7 @@ export function Minimap({
   const [viewMode, setViewMode] = useState<'2d' | 'isometric'>('2d')
   const [currentFloor, setCurrentFloor] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [modelReady, setModelReady] = useState(false)
 
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.OrthographicCamera | THREE.PerspectiveCamera | null>(null)
@@ -31,6 +32,8 @@ export function Minimap({
   const controlsRef = useRef<OrbitControls | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const isInitializingRef = useRef(false)
+  const modelCenterRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0))
+  const modelSizeRef = useRef<number>(50)
 
   const floors = getFloors(sweeps)
   const totalFloors = floors.length
@@ -84,10 +87,32 @@ export function Minimap({
           // Add all floor models to scene
           floorModels.forEach((model, _floorIndex) => {
             model.visible = false // Start hidden
+
+            // Try different rotations to find correct orientation
+            // Matterport uses Y as up, but OBJ might use Z as up
+            model.rotation.x = -Math.PI / 2 // Rotate 90 degrees around X
+
             scene.add(model)
           })
 
+          // Calculate model bounding box AFTER rotation to center camera
+          const bbox = new THREE.Box3()
+          floorModels.forEach((model) => {
+            const floorBbox = new THREE.Box3().setFromObject(model)
+            bbox.union(floorBbox)
+          })
+
+          const center = bbox.getCenter(new THREE.Vector3())
+          const size = bbox.getSize(new THREE.Vector3())
+          const maxDimension = Math.max(size.x, size.y, size.z)
+
+          modelCenterRef.current = center
+          modelSizeRef.current = maxDimension
+
+          console.log('Minimap: Model bounding box (after rotation):', { center, size, maxDimension })
+
           setIsLoading(false)
+          setModelReady(true)
         })
         .catch((error) => {
           console.error('Failed to load minimap model:', error)
@@ -129,7 +154,7 @@ export function Minimap({
 
   // Setup camera based on view mode
   useEffect(() => {
-    if (!sceneRef.current || !rendererRef.current) return
+    if (!sceneRef.current || !rendererRef.current || !modelReady) return
 
     // Remove old camera
     if (cameraRef.current) {
@@ -141,7 +166,7 @@ export function Minimap({
 
     if (viewMode === '2d') {
       // Orthographic camera for 2D top-down view
-      const frustumSize = 50
+      const frustumSize = modelSizeRef.current * 1.5
       camera = new THREE.OrthographicCamera(
         frustumSize / -2,
         frustumSize / 2,
@@ -150,13 +175,29 @@ export function Minimap({
         0.1,
         1000
       )
-      camera.position.set(0, 100, 0)
-      camera.lookAt(0, 0, 0)
+      // Try different camera positions to find top-down view
+      camera.position.set(
+        modelCenterRef.current.x,
+        modelCenterRef.current.y + 100,
+        modelCenterRef.current.z
+      )
+      camera.lookAt(modelCenterRef.current)
+
+      console.log('2D Camera setup:', {
+        position: camera.position,
+        lookAt: modelCenterRef.current,
+        frustumSize
+      })
     } else {
       // Perspective camera for isometric view
       camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000)
-      camera.position.set(50, 50, 50)
-      camera.lookAt(0, 0, 0)
+      const offset = modelSizeRef.current * 1.5
+      camera.position.set(
+        modelCenterRef.current.x + offset,
+        modelCenterRef.current.y + offset,
+        modelCenterRef.current.z + offset
+      )
+      camera.lookAt(modelCenterRef.current)
     }
 
     cameraRef.current = camera
@@ -194,7 +235,7 @@ export function Minimap({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [viewMode])
+  }, [viewMode, modelReady])
 
   // Update floor visibility based on view mode and current floor
   useEffect(() => {
