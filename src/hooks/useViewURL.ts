@@ -4,6 +4,30 @@ import type { ViewURLState } from '../types/matterport'
 const DEBOUNCE_MS = 150 // Update URL 150ms after user stops interacting
 
 /**
+ * Format a UUID by inserting hyphens in the correct pattern (8-4-4-4-12)
+ * Accepts both hyphenated and non-hyphenated UUIDs
+ * Example: 02a80ff31d6e4f7e8d9f250114b790ee → 02a80ff3-1d6e-4f7e-8d9f-250114b790ee
+ */
+function formatUUID(uuid: string): string {
+  // Remove any existing hyphens first
+  const clean = uuid.replace(/-/g, '')
+
+  // If already formatted or wrong length, return as-is
+  if (clean.length !== 32) {
+    return uuid
+  }
+
+  // Insert hyphens in pattern: 8-4-4-4-12
+  return [
+    clean.slice(0, 8),
+    clean.slice(8, 12),
+    clean.slice(12, 16),
+    clean.slice(16, 20),
+    clean.slice(20, 32),
+  ].join('-')
+}
+
+/**
  * React hook to synchronize view state with URL parameters
  * Enables shareable URLs and browser history navigation
  */
@@ -31,7 +55,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
     // If all required params exist, restore state
     if (sweep && x && y && z && pitch && yaw) {
       onStateFromURL({
-        sweep,
+        sweep: formatUUID(sweep), // Format UUID to ensure hyphens
         x: parseFloat(x),
         y: parseFloat(y),
         z: parseFloat(z),
@@ -54,7 +78,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
       updateTimeoutRef.current = setTimeout(() => {
         const params = new URLSearchParams()
 
-        params.set('sweep', state.sweep)
+        params.set('sweep', formatUUID(state.sweep)) // Ensure UUID is properly formatted
         params.set('x', state.x.toString())
         params.set('y', state.y.toString())
         params.set('z', state.z.toString())
@@ -90,7 +114,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
 
       if (sweep && x && y && z && pitch !== null && yaw !== null) {
         onStateFromURL({
-          sweep,
+          sweep: formatUUID(sweep), // Format UUID to ensure hyphens
           x: parseFloat(x),
           y: parseFloat(y),
           z: parseFloat(z),
