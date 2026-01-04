@@ -269,7 +269,7 @@ export function Minimap({
         model.visible = true
       }
     })
-  }, [viewMode, currentFloor])
+  }, [viewMode, currentFloor, modelReady])
 
   // Create/update position markers
   useEffect(() => {
