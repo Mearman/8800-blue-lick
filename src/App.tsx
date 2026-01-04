@@ -120,7 +120,7 @@ function App() {
 
     // Throttle updates to avoid excessive URL changes
     const now = Date.now()
-    if (now - lastCameraUpdateRef.current < DEBOUNCE_MS) return
+    if (now - lastCameraUpdateRef.current < THROTTLE_MS) return
     lastCameraUpdateRef.current = now
 
     // Get current FOV
@@ -303,6 +303,6 @@ function App() {
   )
 }
 
-const DEBOUNCE_MS = 500
+const THROTTLE_MS = 50 // Throttle camera updates to every 50ms
 
 export default App
