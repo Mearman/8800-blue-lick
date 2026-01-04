@@ -18,8 +18,8 @@ interface PanoramaViewerProps {
  */
 export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerProps) {
   const meshRef = useRef<THREE.Mesh | null>(null)
-  const currentSweepRef = useRef<string>(sweepUuid)
-  const currentResolutionRef = useRef<TextureResolution>(resolution)
+  const currentSweepRef = useRef<string | undefined>(undefined)
+  const currentResolutionRef = useRef<TextureResolution | undefined>(undefined)
 
   useEffect(() => {
     if (!scene) {
