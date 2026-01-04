@@ -4,12 +4,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 interface ThreeSceneProps {
   onCameraChange?: (position: THREE.Vector3, pitch: number, yaw: number) => void
+  onFovChange?: (fov: number) => void
 }
 
 export interface ThreeSceneRef {
   getCamera: () => THREE.PerspectiveCamera | null
   getScene: () => THREE.Scene | null
   setCameraPosition: (position: THREE.Vector3, target: THREE.Vector3) => void
+  getFov: () => number
+  setFov: (fov: number) => void
 }
 
 /**
@@ -17,19 +20,26 @@ export interface ThreeSceneRef {
  * Provides imperative handle for parent components to control camera
  */
 export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
-  ({ onCameraChange }, ref) => {
+  ({ onCameraChange, onFovChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<THREE.Scene | null>(null)
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
     const controlsRef = useRef<OrbitControls | null>(null)
     const onCameraChangeRef = useRef(onCameraChange)
+    const onFovChangeRef = useRef(onFovChange)
     const [sceneReady, setSceneReady] = useState(false)
 
-    // Update callback ref when prop changes
+    // FOV constraints
+    const BASE_FOV = 75
+    const MIN_FOV = 30
+    const MAX_FOV = 110
+
+    // Update callback refs when props change
     useEffect(() => {
       onCameraChangeRef.current = onCameraChange
-    }, [onCameraChange])
+      onFovChangeRef.current = onFovChange
+    }, [onCameraChange, onFovChange])
 
     // Expose camera and scene methods via ref
     useImperativeHandle(
@@ -42,6 +52,18 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
             cameraRef.current.position.copy(position)
             controlsRef.current.target.copy(target)
             controlsRef.current.update()
+          }
+        },
+        getFov: () => cameraRef.current?.fov || BASE_FOV,
+        setFov: (fov: number) => {
+          if (cameraRef.current) {
+            const clampedFov = Math.max(MIN_FOV, Math.min(MAX_FOV, fov))
+            cameraRef.current.fov = clampedFov
+            cameraRef.current.updateProjectionMatrix()
+            // Notify parent of FOV change
+            if (onFovChangeRef.current) {
+              onFovChangeRef.current(clampedFov)
+            }
           }
         },
       }),
@@ -82,15 +104,36 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
       containerRef.current.appendChild(canvas)
       rendererRef.current = renderer
 
+      // Handle mouse wheel zoom
+      function handleWheel(event: WheelEvent) {
+        event.preventDefault()
+
+        if (!cameraRef.current) return
+
+        // Adjust FOV based on scroll direction
+        const delta = event.deltaY > 0 ? 1 : -1
+        const currentFov = cameraRef.current.fov
+        const newFov = Math.max(MIN_FOV, Math.min(MAX_FOV, currentFov + delta * 5))
+
+        if (newFov !== currentFov) {
+          cameraRef.current.fov = newFov
+          cameraRef.current.updateProjectionMatrix()
+
+          // Notify parent of FOV change
+          if (onFovChangeRef.current) {
+            onFovChangeRef.current(newFov)
+          }
+        }
+      }
+
+      canvas.addEventListener('wheel', handleWheel, { passive: false })
+
       // Create controls
       const controls = new OrbitControls(camera, renderer.domElement)
       controls.enableDamping = true // Smooth motion
       controls.dampingFactor = 0.05
       controls.rotateSpeed = -0.5 // Invert for natural feel
-      controls.enableZoom = true
-      controls.zoomSpeed = 1.0
-      controls.minDistance = 0.1
-      controls.maxDistance = 5
+      controls.enableZoom = false // Disable built-in zoom, we use FOV instead
       controls.enablePan = false
       controls.target.set(0, 0, 1) // Look at +Z direction
       controlsRef.current = controls
@@ -132,6 +175,7 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
       // Cleanup
       return () => {
         window.removeEventListener('resize', handleResize)
+        canvas.removeEventListener('wheel', handleWheel)
         cancelAnimationFrame(animationFrameId)
 
         if (rendererRef.current && containerRef.current) {
