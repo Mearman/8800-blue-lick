@@ -291,6 +291,14 @@ export function Minimap({
     // Create new markers
     const markerGroup = new THREE.Group()
 
+    // Log model bounds for debugging
+    console.log('Minimap: Model bounds for checking markers:', {
+      center: modelCenterRef.current,
+      size: modelSizeRef.current
+    })
+
+    const outsideSweeps: Array<{name: string; index: number; position: {x: number; y: number; z: number}; floor: number}> = []
+
     sweeps.forEach((sweep) => {
       const isCurrent = sweep.sweep_uuid === currentSweep?.sweep_uuid
       const isNeighbor = currentSweep?.neighbors.includes(sweep.index)
@@ -315,11 +323,41 @@ export function Minimap({
 
       // Apply same -90° X-axis rotation as model: (x, y, z) → (x, z, -y)
       const y = sweep.floor_position.y + 0.5
+      const rotatedPos = {
+        x: sweep.floor_position.x,
+        y: sweep.floor_position.z,
+        z: -y
+      }
+
       marker.position.set(
-        sweep.floor_position.x,
-        sweep.floor_position.z,  // z becomes new y
-        -y                        // -y becomes new z
+        rotatedPos.x,
+        rotatedPos.y,
+        rotatedPos.z
       )
+
+      // Check if marker is outside model bounds (with some tolerance)
+      const tolerance = 5 // Allow 5 units outside bounds
+      const halfSize = modelSizeRef.current / 2
+      const minX = modelCenterRef.current.x - halfSize - tolerance
+      const maxX = modelCenterRef.current.x + halfSize + tolerance
+      const minY = modelCenterRef.current.y - halfSize - tolerance
+      const maxY = modelCenterRef.current.y + halfSize + tolerance
+
+      const isOutside = (
+        rotatedPos.x < minX ||
+        rotatedPos.x > maxX ||
+        rotatedPos.y < minY ||
+        rotatedPos.y > maxY
+      )
+
+      if (isOutside) {
+        outsideSweeps.push({
+          name: sweep.sweep_name,
+          index: sweep.index,
+          position: sweep.floor_position,
+          floor: sweep.floor_index
+        })
+      }
 
       // Store sweep data for click handling
       marker.userData = {
@@ -330,6 +368,14 @@ export function Minimap({
 
       markerGroup.add(marker)
     })
+
+    // Log sweeps outside the model bounds
+    if (outsideSweeps.length > 0) {
+      console.warn('Minimap: Sweeps outside model bounds:', outsideSweeps)
+      console.table(outsideSweeps)
+    } else {
+      console.log('Minimap: All sweeps within model bounds')
+    }
 
     markerGroupRef.current = markerGroup
     sceneRef.current.add(markerGroup)
