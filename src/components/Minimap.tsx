@@ -420,12 +420,19 @@ export function Minimap({
 
     const dir = cameraDirection.clone().normalize()
 
-    // Apply same -90° X-axis rotation to direction vector
-    const rotatedDir = new THREE.Vector3(
-      dir.x,
-      dir.z,
-      -dir.y
-    ).normalize()
+    // Debug logging to understand direction arrow rotation
+    console.log('Direction arrow debug:', {
+      originalDir: { x: dir.x.toFixed(3), y: dir.y.toFixed(3), z: dir.z.toFixed(3) }
+    })
+
+    // Don't rotate the direction vector!
+    // The model was rotated to match the camera's coordinate system (both Y-up now)
+    // So the direction should be used as-is without transformation
+    const rotatedDir = dir.clone()
+
+    console.log('Direction arrow (no rotation):', {
+      rotatedDir: { x: rotatedDir.x.toFixed(3), y: rotatedDir.y.toFixed(3), z: rotatedDir.z.toFixed(3) }
+    })
 
     const arrowLength = 1.5
 
