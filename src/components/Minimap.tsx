@@ -290,10 +290,12 @@ export function Minimap({
       const material = new THREE.MeshBasicMaterial({ color })
       const marker = new THREE.Mesh(geometry, material)
 
+      // Apply same -90° X-axis rotation as model: (x, y, z) → (x, z, -y)
+      const y = sweep.floor_position.y + 0.5
       marker.position.set(
         sweep.floor_position.x,
-        sweep.floor_position.y + 0.5,
-        sweep.floor_position.z
+        sweep.floor_position.z,  // z becomes new y
+        -y                        // -y becomes new z
       )
 
       // Store sweep data for click handling
@@ -321,14 +323,23 @@ export function Minimap({
     }
 
     const dir = cameraDirection.clone().normalize()
+
+    // Apply same -90° X-axis rotation to direction vector
+    const rotatedDir = new THREE.Vector3(
+      dir.x,
+      dir.z,
+      -dir.y
+    ).normalize()
+
     const arrowLength = 1.5
+    const y = currentSweep.floor_position.y + 0.5
     const origin = new THREE.Vector3(
       currentSweep.floor_position.x,
-      currentSweep.floor_position.y + 0.5,
-      currentSweep.floor_position.z
+      currentSweep.floor_position.z,  // z becomes new y
+      -y                              // -y becomes new z
     )
 
-    const arrow = new THREE.ArrowHelper(dir, origin, arrowLength, 0xff6600, 0.3, 0.2)
+    const arrow = new THREE.ArrowHelper(rotatedDir, origin, arrowLength, 0xff6600, 0.3, 0.2)
     directionArrowRef.current = arrow
     sceneRef.current.add(arrow)
   }, [currentSweep, cameraDirection])
