@@ -297,7 +297,16 @@ export function Minimap({
       size: modelSizeRef.current
     })
 
-    const outsideSweeps: Array<{name: string; index: number; position: {x: number; y: number; z: number}; floor: number}> = []
+    const outsideSweeps: Array<{name: string; index: number; position: {x: number; y: number; z: number}; floor: number; room: number}> = []
+    const debugSweeps = sweeps.slice(0, 5) // Log first 5 for debugging
+
+    console.log('Minimap: Sample sweep positions (first 5):')
+    console.table(debugSweeps.map(s => ({
+      index: s.index,
+      room_index: s.room_index,
+      floor: s.floor_index,
+      floor_pos: `x:${s.floor_position.x.toFixed(2)} y:${s.floor_position.y.toFixed(2)} z:${s.floor_position.z.toFixed(2)}`
+    })))
 
     sweeps.forEach((sweep) => {
       const isCurrent = sweep.sweep_uuid === currentSweep?.sweep_uuid
@@ -322,10 +331,15 @@ export function Minimap({
       const marker = new THREE.Mesh(geometry, material)
 
       // Apply same -90° X-axis rotation as model: (x, y, z) → (x, z, -y)
-      const y = sweep.floor_position.y + 0.5
+      // Use position if floor_position is all zeros (happens for room -1 exterior sweeps)
+      const pos = sweep.floor_position.x === 0 && sweep.floor_position.y === 0 && sweep.floor_position.z === 0
+        ? sweep.position
+        : sweep.floor_position
+
+      const y = pos.y + 0.5
       const rotatedPos = {
-        x: sweep.floor_position.x,
-        y: sweep.floor_position.z,
+        x: pos.x,
+        y: pos.z,
         z: -y
       }
 
@@ -334,6 +348,18 @@ export function Minimap({
         rotatedPos.y,
         rotatedPos.z
       )
+
+      // Debug logging for room -1 sweeps
+      if (sweep.room_index === -1) {
+        console.log('Room -1 sweep:', {
+          index: sweep.index,
+          floor_position: sweep.floor_position,
+          position: sweep.position,
+          using_position: pos === sweep.position,
+          rotatedPos: rotatedPos,
+          finalPosition: marker.position
+        })
+      }
 
       // Check if marker is outside model bounds (with some tolerance)
       const tolerance = 5 // Allow 5 units outside bounds
@@ -355,7 +381,8 @@ export function Minimap({
           name: sweep.sweep_name,
           index: sweep.index,
           position: sweep.floor_position,
-          floor: sweep.floor_index
+          floor: sweep.floor_index,
+          room: sweep.room_index
         })
       }
 
@@ -401,11 +428,17 @@ export function Minimap({
     ).normalize()
 
     const arrowLength = 1.5
-    const y = currentSweep.floor_position.y + 0.5
+
+    // Use position if floor_position is all zeros (room -1 exterior sweeps)
+    const arrowPos = currentSweep.floor_position.x === 0 && currentSweep.floor_position.y === 0 && currentSweep.floor_position.z === 0
+      ? currentSweep.position
+      : currentSweep.floor_position
+
+    const y = arrowPos.y + 0.5
     const origin = new THREE.Vector3(
-      currentSweep.floor_position.x,
-      currentSweep.floor_position.z,  // z becomes new y
-      -y                              // -y becomes new z
+      arrowPos.x,
+      arrowPos.z,  // z becomes new y
+      -y          // -y becomes new z
     )
 
     const arrow = new THREE.ArrowHelper(rotatedDir, origin, arrowLength, 0xff6600, 0.3, 0.2)
