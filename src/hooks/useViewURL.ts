@@ -26,6 +26,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
     const z = params.get('z')
     const pitch = params.get('pitch')
     const yaw = params.get('yaw')
+    const fov = params.get('fov')
 
     // If all required params exist, restore state
     if (sweep && x && y && z && pitch && yaw) {
@@ -36,6 +37,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
         z: parseFloat(z),
         pitch: parseFloat(pitch),
         yaw: parseFloat(yaw),
+        ...(fov && { fov: parseFloat(fov) }), // Include fov if present
       })
     }
   }, [onStateFromURL])
@@ -59,6 +61,11 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
         params.set('pitch', state.pitch.toString())
         params.set('yaw', state.yaw.toString())
 
+        // Include fov in URL if provided
+        if (state.fov !== undefined) {
+          params.set('fov', state.fov.toString())
+        }
+
         const newURL = `${window.location.pathname}?${params.toString()}`
 
         // Use replaceState to avoid filling browser history
@@ -79,6 +86,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
       const z = params.get('z')
       const pitch = params.get('pitch')
       const yaw = params.get('yaw')
+      const fov = params.get('fov')
 
       if (sweep && x && y && z && pitch !== null && yaw !== null) {
         onStateFromURL({
@@ -88,6 +96,7 @@ export function useViewURL(onStateFromURL: (state: ViewURLState) => void) {
           z: parseFloat(z),
           pitch: parseFloat(pitch),
           yaw: parseFloat(yaw),
+          ...(fov && { fov: parseFloat(fov) }), // Include fov if present
         })
       }
     }
