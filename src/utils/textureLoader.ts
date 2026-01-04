@@ -23,10 +23,16 @@ export async function loadCubemapTextures(
   // Remove hyphens from UUID to match directory naming convention
   const sanitizedUuid = sweepUuid.replace(/-/g, '')
 
-  // Load each of the 6 cube faces
+  // Matterport face order mapping to Three.js BoxGeometry faces
+  // Three.js order: [right, left, top, bottom, front, back]
+  // Matterport files: face4, face2, face0, face5, face1, face3
+  const matterportFaceOrder = [4, 2, 0, 5, 1, 3]
+
+  // Load each of the 6 cube faces in correct order
   // For now, we'll load a single tile per face (simplified approach)
   // TODO: Implement tiled loading for higher resolutions
-  for (let face = 0; face < 6; face++) {
+  for (let i = 0; i < 6; i++) {
+    const face = matterportFaceOrder[i]
     const textureUrl = `${basePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_0_0.jpg`
 
     try {
