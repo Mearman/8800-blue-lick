@@ -60,6 +60,13 @@
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+.expand-button {
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  min-width: 28px;
+}
+
 .floor-controls {
   display: flex;
   align-items: center;
@@ -105,4 +112,19 @@
 .minimap-canvas canvas {
   display: block;
   border-radius: 0 0 8px 8px;
+}
+
+/* Expanded state */
+.minimap-container.expanded {
+  width: 800px;
+  top: 50%;
+  left: 50%;
+  bottom: auto;
+  right: auto;
+  transform: translate(-50%, -50%);
+}
+
+.minimap-container.expanded .minimap-canvas {
+  width: 800px;
+  height: 800px;
 }

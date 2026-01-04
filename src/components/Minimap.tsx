@@ -22,6 +22,7 @@ export function Minimap({
   const [currentFloor, setCurrentFloor] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
   const [modelReady, setModelReady] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.OrthographicCamera | THREE.PerspectiveCamera | null>(null)
@@ -209,7 +210,7 @@ export function Minimap({
 
     if (viewMode === 'isometric') {
       const controls = new OrbitControls(camera, rendererRef.current!.domElement)
-      controls.enableZoom = false
+      controls.enableZoom = true // Enable zoom for isometric mode
       controls.enablePan = true
       controls.minPolarAngle = Math.PI / 4
       controls.maxPolarAngle = Math.PI / 2
@@ -236,6 +237,28 @@ export function Minimap({
       }
     }
   }, [viewMode, modelReady])
+
+  // Handle resize when expanding/collapsing
+  useEffect(() => {
+    if (!rendererRef.current || !cameraRef.current) return
+
+    const size = isExpanded ? 800 : 300
+    rendererRef.current.setSize(size, size)
+
+    // Update camera based on type
+    const camera = cameraRef.current
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.aspect = size / size
+      camera.updateProjectionMatrix()
+    } else if (camera instanceof THREE.OrthographicCamera) {
+      const frustumSize = modelSizeRef.current * 1.5
+      camera.left = frustumSize / -2
+      camera.right = frustumSize / 2
+      camera.top = frustumSize / 2
+      camera.bottom = frustumSize / -2
+      camera.updateProjectionMatrix()
+    }
+  }, [isExpanded, modelReady])
 
   // Update floor visibility based on view mode and current floor
   useEffect(() => {
@@ -386,7 +409,7 @@ export function Minimap({
   }, [currentSweep, viewMode])
 
   return (
-    <div className="minimap-container">
+    <div className={`minimap-container${isExpanded ? ' expanded' : ''}`}>
       <div className="minimap-header">
         <div className="minimap-controls-row">
           <span className="minimap-title">Minimap</span>
@@ -402,6 +425,13 @@ export function Minimap({
               onClick={() => setViewMode('isometric')}
             >
               3D
+            </button>
+            <button
+              className="expand-button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              title={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? '−' : '+'}
             </button>
           </div>
         </div>
