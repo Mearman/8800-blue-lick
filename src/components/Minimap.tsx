@@ -510,29 +510,91 @@ export function Minimap({
     [onNavigate]
   )
 
+  // Find nearest sweep to current position from a list of sweeps
+  const findNearestSweep = useCallback(
+    (candidateSweeps: Sweep[]): Sweep | null => {
+      if (!currentSweep || candidateSweeps.length === 0) return null
+
+      const currentPosition = currentSweep.position
+      let nearest = candidateSweeps[0]
+      let minDistance = Infinity
+
+      candidateSweeps.forEach((sweep) => {
+        const dx = sweep.position.x - currentPosition.x
+        const dy = sweep.position.y - currentPosition.y
+        const dz = sweep.position.z - currentPosition.z
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
+
+        if (distance < minDistance) {
+          minDistance = distance
+          nearest = sweep
+        }
+      })
+
+      return nearest
+    },
+    [currentSweep]
+  )
+
   // Floor cycling
   const goToPrevFloor = useCallback(() => {
-    setCurrentFloor((f) => Math.max(0, f - 1))
-  }, [])
+    const newFloor = Math.max(0, currentFloor - 1)
+    setCurrentFloor(newFloor)
+
+    // Find and navigate to nearest sweep on new floor
+    if (currentSweep) {
+      const sweepsOnNewFloor = sweeps.filter((s) => s.floor_index === newFloor)
+      const nearest = findNearestSweep(sweepsOnNewFloor)
+      if (nearest) {
+        onNavigate(nearest.sweep_uuid)
+      }
+    }
+  }, [currentFloor, currentSweep, sweeps, findNearestSweep, onNavigate])
 
   const goToNextFloor = useCallback(() => {
-    setCurrentFloor((f) => Math.min(totalFloors - 1, f + 1))
-  }, [totalFloors])
+    const newFloor = Math.min(totalFloors - 1, currentFloor + 1)
+    setCurrentFloor(newFloor)
+
+    // Find and navigate to nearest sweep on new floor
+    if (currentSweep) {
+      const sweepsOnNewFloor = sweeps.filter((s) => s.floor_index === newFloor)
+      const nearest = findNearestSweep(sweepsOnNewFloor)
+      if (nearest) {
+        onNavigate(nearest.sweep_uuid)
+      }
+    }
+  }, [currentFloor, totalFloors, currentSweep, sweeps, findNearestSweep, onNavigate])
 
   // Room cycling
   const goToPrevRoom = useCallback(() => {
     if (currentRoomIndex > 0) {
+      const newRoom = roomsOnCurrentFloor[currentRoomIndex - 1]
       isRoomChangeFromButtonRef.current = true
-      setCurrentRoom(roomsOnCurrentFloor[currentRoomIndex - 1])
+      setCurrentRoom(newRoom)
+
+      // Find and navigate to nearest sweep in new room
+      const sweepsInNewRoom = getSweepsInRoom(currentFloor, newRoom)
+      const nearest = findNearestSweep(sweepsInNewRoom)
+      if (nearest) {
+        onNavigate(nearest.sweep_uuid)
+      }
     }
-  }, [currentRoomIndex, roomsOnCurrentFloor])
+  }, [currentRoomIndex, currentFloor, roomsOnCurrentFloor, getSweepsInRoom, findNearestSweep, onNavigate])
 
   const goToNextRoom = useCallback(() => {
     if (currentRoomIndex < totalRooms - 1) {
+      const newRoom = roomsOnCurrentFloor[currentRoomIndex + 1]
       isRoomChangeFromButtonRef.current = true
-      setCurrentRoom(roomsOnCurrentFloor[currentRoomIndex + 1])
+      setCurrentRoom(newRoom)
+
+      // Find and navigate to nearest sweep in new room
+      const sweepsInNewRoom = getSweepsInRoom(currentFloor, newRoom)
+      const nearest = findNearestSweep(sweepsInNewRoom)
+      if (nearest) {
+        onNavigate(nearest.sweep_uuid)
+      }
     }
-  }, [currentRoomIndex, totalRooms, roomsOnCurrentFloor])
+  }, [currentRoomIndex, totalRooms, currentFloor, roomsOnCurrentFloor, getSweepsInRoom, findNearestSweep, onNavigate])
 
   // Sweep cycling within room
   const goToPrevSweep = useCallback(() => {
@@ -568,18 +630,6 @@ export function Minimap({
       }
     }
   }, [currentSweep, viewMode, currentRoom, getSweepsInRoom])
-
-  // Navigate to first sweep when room changes via button click
-  useEffect(() => {
-    if (currentRoom !== null && viewMode === '2d' && isRoomChangeFromButtonRef.current) {
-      const roomSweeps = getSweepsInRoom(currentFloor, currentRoom)
-      if (roomSweeps.length > 0) {
-        setCurrentSweepIndex(0)
-        onNavigate(roomSweeps[0].sweep_uuid)
-      }
-      isRoomChangeFromButtonRef.current = false // Reset flag
-    }
-  }, [currentRoom, currentFloor, viewMode, getSweepsInRoom, onNavigate])
 
   return (
     <div className={`minimap-container${isExpanded ? ' expanded' : ''}`}>
