@@ -253,6 +253,7 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
     return (
       <div
         ref={containerRef}
+        data-testid="panorama-viewer"
         style={{
           position: 'fixed',
           top: 0,
