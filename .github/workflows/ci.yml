@@ -100,13 +100,35 @@ jobs:
       - name: Build
         run: pnpm build
 
-  # Note: GitHub Pages deployment is disabled because the project contains
-  # 823MB of Matterport assets (textures, models) which exceed practical
-  # deployment limits. This project is designed as a self-contained static
-  # archive and requires alternative hosting (e.g., Vercel, Netlify, or
-  # a custom CDN) for the large asset files.
-  #
-  # To enable deployment:
-  # 1. Move assets to a CDN (jsDelivr, Cloudflare, etc.)
-  # 2. Update asset URLs in the app to use the CDN
-  # 3. Uncomment the deploy job below
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: ./dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
