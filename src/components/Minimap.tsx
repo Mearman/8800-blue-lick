@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { loadModelByFloors, getFloors } from '../utils/modelLoader'
+import { getAssetsBaseUrl } from '../utils/assetUrl'
 import type { Sweep } from '../types/matterport'
 import './Minimap.css'
 
@@ -111,9 +112,9 @@ export function Minimap({
       scene.add(directionalLight)
 
       // Load model
-      const basePath = import.meta.env.BASE_URL || '/'
-      const objPath = `${basePath}assets/BGMifUnvLxQ/model/low-res/geometry.obj`
-      const mtlPath = `${basePath}assets/BGMifUnvLxQ/model/low-res/geometry.mtl`
+      const basePath = getAssetsBaseUrl()
+      const objPath = `${basePath}BGMifUnvLxQ/model/low-res/geometry.obj`
+      const mtlPath = `${basePath}BGMifUnvLxQ/model/low-res/geometry.mtl`
 
       console.log('Minimap: Starting model load...')
       console.log('Minimap: OBJ path:', objPath)

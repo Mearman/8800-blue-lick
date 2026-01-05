@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { getAssetsBaseUrl } from './assetUrl'
 
 /**
  * Texture resolution levels
@@ -127,8 +128,10 @@ async function loadTiledTexture(
 export async function loadCubemapTextures(
   sweepUuid: string,
   resolution: TextureResolution = '1k',
-  basePath: string = `${import.meta.env.BASE_URL}assets/BGMifUnvLxQ`
+  basePath?: string
 ): Promise<THREE.Texture[]> {
+  // Use production assets URL if provided, otherwise use passed basePath or default
+  const assetBasePath = basePath || getAssetsBaseUrl()
   // Remove hyphens from UUID to match directory naming convention
   const sanitizedUuid = sweepUuid.replace(/-/g, '')
 
@@ -147,7 +150,7 @@ export async function loadCubemapTextures(
       for (let row = 0; row < tilesPerSide; row++) {
         for (let col = 0; col < tilesPerSide; col++) {
           tileUrls.push(
-            `${basePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`
+            `${assetBasePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`
           )
         }
       }
@@ -179,8 +182,10 @@ export function getTilePaths(
   sweepUuid: string,
   resolution: TextureResolution,
   face: number,
-  basePath: string = `${import.meta.env.BASE_URL}assets/BGMifUnvLxQ`
+  basePath?: string
 ): string[] {
+  // Use production assets URL if provided, otherwise use passed basePath or default
+  const assetBasePath = basePath || getAssetsBaseUrl()
   const tilesPerSide = getTilesPerSide(resolution)
   const tiles: string[] = []
 
@@ -189,7 +194,7 @@ export function getTilePaths(
 
   for (let row = 0; row < tilesPerSide; row++) {
     for (let col = 0; col < tilesPerSide; col++) {
-      tiles.push(`${basePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`)
+      tiles.push(`${assetBasePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`)
     }
   }
 

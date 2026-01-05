@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getAssetsBaseUrl } from '../utils/assetUrl'
 import type { Sweep } from '../types/matterport'
 
 /**
@@ -26,7 +27,7 @@ export function useSweepsData() {
     async function loadSweeps() {
       console.log('useSweepsData: Starting load...')
       try {
-        const url = `${import.meta.env.BASE_URL}assets/BGMifUnvLxQ/metadata/sweeps.json`
+        const url = `${getAssetsBaseUrl()}BGMifUnvLxQ/metadata/sweeps.json`
         console.log('useSweepsData: Fetching', url)
         const response = await fetch(url)
         console.log('useSweepsData: Response', { ok: response.ok, status: response.status, statusText: response.statusText })
