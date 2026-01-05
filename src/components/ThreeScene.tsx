@@ -1,4 +1,4 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react'
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
@@ -31,7 +31,6 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
     const onCameraChangeRef = useRef(onCameraChange)
     const onFovChangeRef = useRef(onFovChange)
     const isInteractingRef = useRef(false)
-    const [sceneReady, setSceneReady] = useState(false)
 
     // FOV constraints
     const BASE_FOV = 75
@@ -96,7 +95,7 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
           return null
         },
       }),
-      [sceneReady] // Update when scene is ready
+      []
     )
 
     useEffect(() => {
@@ -106,7 +105,6 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
       const scene = new THREE.Scene()
       scene.background = new THREE.Color(0x000000) // Black background for visibility
       sceneRef.current = scene
-      setSceneReady(true) // Notify parent that scene is ready
 
       // Create camera
       const camera = new THREE.PerspectiveCamera(
