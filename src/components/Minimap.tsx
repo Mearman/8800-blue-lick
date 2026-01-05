@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { loadModelByFloors, getFloors } from '../utils/modelLoader'
@@ -61,15 +61,24 @@ export function Minimap({
   )
 
   const [currentRoom, setCurrentRoom] = useState<number | null>(null)
-  const [currentSweepIndex, setCurrentSweepIndex] = useState<number>(0)
 
-  const roomsOnCurrentFloor = getRoomsOnFloor(currentFloor)
+  // In 2D mode, derive floor/room from currentSweep for auto-switching
+  // In isometric mode, use manual state for independent control
+  const displayFloor = viewMode === '2d' && currentSweep ? currentSweep.floor_index : currentFloor
+  const displayRoom = viewMode === '2d' && currentSweep && currentSweep.room_index !== -1 ? currentSweep.room_index : currentRoom
+
+  const roomsOnCurrentFloor = getRoomsOnFloor(displayFloor)
   const totalRooms = roomsOnCurrentFloor.length
-  const currentRoomIndex = currentRoom !== null ? roomsOnCurrentFloor.indexOf(currentRoom) : -1
+  const currentRoomIndex = displayRoom !== null ? roomsOnCurrentFloor.indexOf(displayRoom) : -1
 
   const sweepsInCurrentRoom =
-    currentRoom !== null ? getSweepsInRoom(currentFloor, currentRoom) : []
+    displayRoom !== null ? getSweepsInRoom(displayFloor, displayRoom) : []
   const totalSweepsInRoom = sweepsInCurrentRoom.length
+
+  // Derive current sweep index from currentSweep
+  const currentSweepIndex = currentSweep && displayRoom !== null
+    ? sweepsInCurrentRoom.findIndex((s) => s.sweep_uuid === currentSweep.sweep_uuid)
+    : 0
 
   // Initialize Three.js scene when DOM element is ready
   const setMinimapRef = useCallback((node: HTMLDivElement | null) => {
@@ -118,7 +127,7 @@ export function Minimap({
           floorModelsRef.current = floorModels
 
           // Add all floor models to scene
-          floorModels.forEach((model, _) => {
+          floorModels.forEach((model) => {
             model.visible = false // Start hidden
 
             // Try different rotations to find correct orientation
@@ -296,12 +305,12 @@ export function Minimap({
   useEffect(() => {
     floorModelsRef.current.forEach((model, floorIndex) => {
       if (viewMode === '2d') {
-        model.visible = floorIndex === currentFloor
+        model.visible = floorIndex === displayFloor
       } else {
         model.visible = true
       }
     })
-  }, [viewMode, currentFloor, modelReady])
+  }, [viewMode, displayFloor, modelReady])
 
   // Create/update position markers
   useEffect(() => {
@@ -600,7 +609,6 @@ export function Minimap({
   const goToPrevSweep = useCallback(() => {
     if (sweepsInCurrentRoom.length > 0) {
       const newIndex = currentSweepIndex > 0 ? currentSweepIndex - 1 : sweepsInCurrentRoom.length - 1
-      setCurrentSweepIndex(newIndex)
       onNavigate(sweepsInCurrentRoom[newIndex].sweep_uuid)
     }
   }, [sweepsInCurrentRoom, currentSweepIndex, onNavigate])
@@ -608,28 +616,9 @@ export function Minimap({
   const goToNextSweep = useCallback(() => {
     if (sweepsInCurrentRoom.length > 0) {
       const newIndex = currentSweepIndex < sweepsInCurrentRoom.length - 1 ? currentSweepIndex + 1 : 0
-      setCurrentSweepIndex(newIndex)
       onNavigate(sweepsInCurrentRoom[newIndex].sweep_uuid)
     }
   }, [sweepsInCurrentRoom, currentSweepIndex, onNavigate])
-
-  // Auto-switch floor and room when navigating in 2D mode
-  useLayoutEffect(() => {
-    if (currentSweep && viewMode === '2d') {
-      setCurrentFloor(currentSweep.floor_index)
-      if (currentSweep.room_index !== -1) {
-        setCurrentRoom(currentSweep.room_index)
-      }
-      // Update sweep index within current room
-      if (currentRoom !== null) {
-        const roomSweeps = getSweepsInRoom(currentSweep.floor_index, currentRoom)
-        const newIndex = roomSweeps.findIndex((s) => s.sweep_uuid === currentSweep.sweep_uuid)
-        if (newIndex !== -1) {
-          setCurrentSweepIndex(newIndex)
-        }
-      }
-    }
-  }, [currentSweep, viewMode, currentRoom, getSweepsInRoom])
 
   return (
     <div className={`minimap-container${isExpanded ? ' expanded' : ''}`}>
@@ -663,17 +652,17 @@ export function Minimap({
           <div className="floor-controls">
             <button
               onClick={goToPrevFloor}
-              disabled={currentFloor === 0}
+              disabled={displayFloor === 0}
               title="Previous floor"
             >
               ← Prev
             </button>
             <span>
-              Floor {currentFloor + 1} of {totalFloors}
+              Floor {displayFloor + 1} of {totalFloors}
             </span>
             <button
               onClick={goToNextFloor}
-              disabled={currentFloor === totalFloors - 1}
+              disabled={displayFloor === totalFloors - 1}
               title="Next floor"
             >
               Next →
