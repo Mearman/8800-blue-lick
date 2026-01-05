@@ -97,6 +97,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.tmp
+            node_modules/.vite
+          key: ${{ runner.os }}-build-cache-${{ hashFiles('**/tsconfig*.json', '**/vite.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-build-cache-
+
       - name: Build
         run: pnpm build
 
