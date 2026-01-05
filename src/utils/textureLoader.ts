@@ -134,6 +134,7 @@ export async function loadCubemapTextures(
   const assetBasePath = basePath || getAssetsBaseUrl()
   // Remove hyphens from UUID to match directory naming convention
   const sanitizedUuid = sweepUuid.replace(/-/g, '')
+  const modelId = 'BGMifUnvLxQ'
 
   // Matterport face order mapping to Three.js BoxGeometry faces
   // Three.js order: [right, left, top, bottom, front, back]
@@ -150,7 +151,7 @@ export async function loadCubemapTextures(
       for (let row = 0; row < tilesPerSide; row++) {
         for (let col = 0; col < tilesPerSide; col++) {
           tileUrls.push(
-            `${assetBasePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`
+            `${assetBasePath}${modelId}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`
           )
         }
       }
@@ -191,10 +192,11 @@ export function getTilePaths(
 
   // Remove hyphens from UUID to match directory naming convention
   const sanitizedUuid = sweepUuid.replace(/-/g, '')
+  const modelId = 'BGMifUnvLxQ'
 
   for (let row = 0; row < tilesPerSide; row++) {
     for (let col = 0; col < tilesPerSide; col++) {
-      tiles.push(`${assetBasePath}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`)
+      tiles.push(`${assetBasePath}${modelId}/panoramas/${sanitizedUuid}/${resolution}_face${face}_${row}_${col}.jpg`)
     }
   }
 
