@@ -20,6 +20,7 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
   const meshRef = useRef<THREE.Mesh | null>(null)
   const currentSweepRef = useRef<string | undefined>(undefined)
   const currentResolutionRef = useRef<TextureResolution | undefined>(undefined)
+  const upgradeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!scene) {
@@ -72,10 +73,22 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
         // Progressive upgrade to target resolution if needed
         if (targetResolution !== '512') {
           console.log('PanoramaViewer: Upgrading to', targetResolution)
-          setTimeout(async () => {
+          upgradeTimeoutRef.current = setTimeout(async () => {
             try {
+              // Check if this upgrade is still valid (sweep/resolution hasn't changed)
+              if (currentSweepRef.current !== sweepUuid || currentResolutionRef.current !== targetResolution) {
+                console.log('PanoramaViewer: Upgrade cancelled, sweep/resolution changed')
+                return
+              }
+
               // Load high-res textures first
               const highResTextures = await loadCubemapTextures(sweepUuid, targetResolution)
+
+              // Check again after async load
+              if (currentSweepRef.current !== sweepUuid || currentResolutionRef.current !== targetResolution) {
+                console.log('PanoramaViewer: Upgrade cancelled after texture load')
+                return
+              }
 
               // Create new materials with high-res textures BEFORE disposing old ones
               // This prevents black flash during transition
@@ -122,6 +135,12 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
 
     // Cleanup function
     return () => {
+      // Cancel any pending upgrade
+      if (upgradeTimeoutRef.current) {
+        clearTimeout(upgradeTimeoutRef.current)
+      }
+
+      // Dispose mesh
       if (meshRef.current) {
         scene.remove(meshRef.current)
         if (meshRef.current.geometry) meshRef.current.geometry.dispose()
