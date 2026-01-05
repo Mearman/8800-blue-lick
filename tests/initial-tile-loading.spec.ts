@@ -67,8 +67,8 @@ test.describe('Initial Page Tile Loading', () => {
     // Wait for initial 512px textures to load (progressive loading starts immediately)
     await page.waitForTimeout(3000)
 
-    // Verify canvas exists
-    const canvas = page.locator('canvas')
+    // Verify canvas exists (target main panorama canvas, not minimap)
+    const canvas = page.locator('[data-testid="panorama-viewer"] canvas')
     await expect(canvas).toBeVisible()
 
     // Verify 512px tiles were loaded

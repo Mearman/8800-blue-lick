@@ -48,8 +48,8 @@ test.describe('URL Parameter Loading', () => {
     // Take screenshot for visual inspection
     await page.screenshot({ path: 'test-screenshot.png', fullPage: true })
 
-    // Check if canvas exists
-    const canvas = page.locator('canvas')
+    // Check if canvas exists (target main panorama canvas, not minimap)
+    const canvas = page.locator('[data-testid="panorama-viewer"] canvas')
     await expect(canvas).toBeVisible()
 
     // Check if any textures were loaded
