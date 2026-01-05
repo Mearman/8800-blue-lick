@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test } from '@playwright/test'
 
 test.describe('Basic Rendering', () => {
   test('should render canvas without URL params', async ({ page }) => {
