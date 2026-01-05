@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { loadModelByFloors, getFloors } from '../utils/modelLoader'
@@ -118,7 +118,7 @@ export function Minimap({
           floorModelsRef.current = floorModels
 
           // Add all floor models to scene
-          floorModels.forEach((model, _floorIndex) => {
+          floorModels.forEach((model, _) => {
             model.visible = false // Start hidden
 
             // Try different rotations to find correct orientation
@@ -614,7 +614,7 @@ export function Minimap({
   }, [sweepsInCurrentRoom, currentSweepIndex, onNavigate])
 
   // Auto-switch floor and room when navigating in 2D mode
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (currentSweep && viewMode === '2d') {
       setCurrentFloor(currentSweep.floor_index)
       if (currentSweep.room_index !== -1) {
