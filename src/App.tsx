@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ThreeScene, type ThreeSceneRef } from './components/ThreeScene'
 import { PanoramaViewer } from './components/PanoramaViewer'
 import { NavigationControls } from './components/NavigationControls'
@@ -37,7 +37,7 @@ function App() {
   }
 
   // Apply URL state to set current sweep and camera position
-  const applyURLState = (state: ViewURLState) => {
+  const applyURLState = useCallback((state: ViewURLState) => {
     // Find sweep by UUID
     const sweep = sweeps.find((s) => s.sweep_uuid === state.sweep)
     if (sweep) {
@@ -60,7 +60,7 @@ function App() {
         }
       }, 100)
     }
-  }
+  }, [sweeps])
 
   // Handle URL state restoration
   const handleStateFromURL = (state: ViewURLState) => {
@@ -107,7 +107,7 @@ function App() {
         setCurrentResolution('512')
       }
     }
-  }, [sweeps, scene, currentSweep])
+  }, [sweeps, scene, currentSweep, applyURLState])
 
   const { updateURL } = useViewURL(handleStateFromURL)
 
