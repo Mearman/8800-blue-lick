@@ -99,7 +99,8 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
     )
 
     useEffect(() => {
-      if (!containerRef.current) return
+      const container = containerRef.current
+      if (!container) return
 
       // Create scene
       const scene = new THREE.Scene()
@@ -128,7 +129,7 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
       canvas.style.width = '100%'
       canvas.style.height = '100%'
 
-      containerRef.current.appendChild(canvas)
+      container.appendChild(canvas)
       rendererRef.current = renderer
 
       // Handle mouse wheel zoom
@@ -237,8 +238,8 @@ export const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(
         canvas.removeEventListener('wheel', handleWheel)
         cancelAnimationFrame(animationFrameId)
 
-        if (rendererRef.current && containerRef.current) {
-          containerRef.current.removeChild(rendererRef.current.domElement)
+        if (rendererRef.current && container) {
+          container.removeChild(rendererRef.current.domElement)
           rendererRef.current.dispose()
         }
 
