@@ -25,15 +25,6 @@ function App() {
   const pendingResolutionRef = useRef<TextureResolution | null>(null)
   const fovChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Reset resolution to 512 when navigating
-  const prevSweepRef = useRef<Sweep | null>(null)
-  useEffect(() => {
-    if (currentSweep && currentSweep !== prevSweepRef.current) {
-      setCurrentResolution('512')
-      prevSweepRef.current = currentSweep
-    }
-  }, [currentSweep])
-
   // Use a callback ref to get notified when the ref changes
   const setThreeSceneRef = (ref: ThreeSceneRef | null) => {
     threeSceneRef.current = ref
@@ -51,6 +42,8 @@ function App() {
     const sweep = sweeps.find((s) => s.sweep_uuid === state.sweep)
     if (sweep) {
       setCurrentSweep(sweep)
+      // Reset to low resolution on URL navigation for instant display
+      setCurrentResolution('512')
 
       // Restore camera position, orientation, and FOV after scene is ready
       setTimeout(() => {
@@ -102,13 +95,16 @@ function App() {
         const sweep = sweeps.find((s) => s.sweep_uuid === urlSweep)
         if (sweep) {
           setCurrentSweep(sweep)
+          setCurrentResolution('512')
         } else {
           setCurrentSweep(sweeps[0])
+          setCurrentResolution('512')
         }
       } else {
         // No URL state, use first sweep
         const sweep = sweeps[0]
         setCurrentSweep(sweep)
+        setCurrentResolution('512')
       }
     }
   }, [sweeps, scene, currentSweep])
@@ -201,25 +197,29 @@ function App() {
 
       switch (event.key) {
         case 'ArrowUp':
-        case 'w':
+        case 'w': {
           newPosition.y += moveSpeed
           break
+        }
         case 'ArrowDown':
-        case 's':
+        case 's': {
           newPosition.y -= moveSpeed
           break
+        }
         case 'ArrowLeft':
-        case 'a':
+        case 'a': {
           // Move left relative to camera direction
           const left = new THREE.Vector3(-1, 0, 0).applyQuaternion(camera.quaternion)
           newPosition.add(left.multiplyScalar(moveSpeed))
           break
+        }
         case 'ArrowRight':
-        case 'd':
+        case 'd': {
           // Move right relative to camera direction
           const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
           newPosition.add(right.multiplyScalar(moveSpeed))
           break
+        }
         default:
           return
       }
