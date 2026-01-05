@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { loadModelByFloors, getFloors } from '../utils/modelLoader'
@@ -71,8 +71,11 @@ export function Minimap({
   const totalRooms = roomsOnCurrentFloor.length
   const currentRoomIndex = displayRoom !== null ? roomsOnCurrentFloor.indexOf(displayRoom) : -1
 
-  const sweepsInCurrentRoom =
-    displayRoom !== null ? getSweepsInRoom(displayFloor, displayRoom) : []
+  // Memoize sweepsInCurrentRoom to prevent useCallback dependencies from changing on every render
+  const sweepsInCurrentRoom = useMemo(() =>
+    displayRoom !== null ? getSweepsInRoom(displayFloor, displayRoom) : [],
+    [displayFloor, displayRoom, getSweepsInRoom]
+  )
   const totalSweepsInRoom = sweepsInCurrentRoom.length
 
   // Derive current sweep index from currentSweep
