@@ -74,17 +74,11 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
           console.log('PanoramaViewer: Upgrading to', targetResolution)
           setTimeout(async () => {
             try {
+              // Load high-res textures first
               const highResTextures = await loadCubemapTextures(sweepUuid, targetResolution)
 
-              // Dispose old materials
-              if (meshRef.current && Array.isArray(meshRef.current.material)) {
-                ;(meshRef.current.material as THREE.MeshBasicMaterial[]).forEach((mat) => {
-                  if (mat.map) mat.map.dispose()
-                  mat.dispose()
-                })
-              }
-
-              // Create new materials with high-res textures
+              // Create new materials with high-res textures BEFORE disposing old ones
+              // This prevents black flash during transition
               const newMaterials = highResTextures.map(
                 (texture) =>
                   new THREE.MeshBasicMaterial({
@@ -94,6 +88,15 @@ export function PanoramaViewer({ sweepUuid, scene, resolution }: PanoramaViewerP
               )
 
               if (meshRef.current) {
+                // Dispose old materials after new ones are ready
+                if (Array.isArray(meshRef.current.material)) {
+                  ;(meshRef.current.material as THREE.MeshBasicMaterial[]).forEach((mat) => {
+                    if (mat.map) mat.map.dispose()
+                    mat.dispose()
+                  })
+                }
+
+                // Now assign new materials (no black flash)
                 meshRef.current.material = newMaterials
                 console.log('PanoramaViewer: Upgraded to', targetResolution)
               }
