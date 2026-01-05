@@ -9,7 +9,9 @@
 export function getAssetsBaseUrl(): string {
   // Use production environment variable if set (raw GitHub URLs)
   if (import.meta.env.VITE_ASSETS_BASE_URL) {
-    return import.meta.env.VITE_ASSETS_BASE_URL
+    const baseUrl = import.meta.env.VITE_ASSETS_BASE_URL
+    // Ensure trailing slash for proper path concatenation
+    return baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
   }
 
   // Fall back to Vite's BASE_URL + assets (local development)
