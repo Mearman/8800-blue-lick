@@ -37,6 +37,7 @@ export function Minimap({
   const modelCenterRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0))
   const modelSizeRef = useRef<number>(50)
   const isRoomChangeFromButtonRef = useRef(false)
+  const previousCameraDirRef = useRef<{ x: number; y: number; z: number } | null>(null)
 
   const floors = getFloors(sweeps)
   const totalFloors = floors.length
@@ -394,18 +395,6 @@ export function Minimap({
         rotatedPos.z
       )
 
-      // Debug logging for room -1 sweeps
-      if (sweep.room_index === -1) {
-        console.log('Room -1 sweep:', {
-          index: sweep.index,
-          floor_position: sweep.floor_position,
-          position: sweep.position,
-          using_position: pos === sweep.position,
-          rotatedPos: rotatedPos,
-          finalPosition: marker.position
-        })
-      }
-
       // Check if marker is outside model bounds (with some tolerance)
       const tolerance = 5 // Allow 5 units outside bounds
       const halfSize = modelSizeRef.current / 2
@@ -457,27 +446,30 @@ export function Minimap({
   useEffect(() => {
     if (!sceneRef.current || !currentSweep) return
 
+    const dir = cameraDirection.clone().normalize()
+    const currentDir = { x: dir.x, y: dir.y, z: dir.z }
+    const prevDir = previousCameraDirRef.current
+
+    // Only update if direction actually changed (not just object reference)
+    if (
+      prevDir &&
+      Math.abs(prevDir.x - currentDir.x) < 0.001 &&
+      Math.abs(prevDir.y - currentDir.y) < 0.001 &&
+      Math.abs(prevDir.z - currentDir.z) < 0.001
+    ) {
+      return // Direction hasn't changed, skip update
+    }
+
     // Remove old arrow
     if (directionArrowRef.current) {
       sceneRef.current.remove(directionArrowRef.current)
       directionArrowRef.current.dispose()
     }
 
-    const dir = cameraDirection.clone().normalize()
-
-    // Debug logging to understand direction arrow rotation
-    console.log('Direction arrow debug:', {
-      originalDir: { x: dir.x.toFixed(3), y: dir.y.toFixed(3), z: dir.z.toFixed(3) }
-    })
-
     // Don't rotate the direction vector!
     // The model was rotated to match the camera's coordinate system (both Y-up now)
     // So the direction should be used as-is without transformation
     const rotatedDir = dir.clone()
-
-    console.log('Direction arrow (no rotation):', {
-      rotatedDir: { x: rotatedDir.x.toFixed(3), y: rotatedDir.y.toFixed(3), z: rotatedDir.z.toFixed(3) }
-    })
 
     const arrowLength = 1.5
 
@@ -496,6 +488,9 @@ export function Minimap({
     const arrow = new THREE.ArrowHelper(rotatedDir, origin, arrowLength, 0xff6600, 0.3, 0.2)
     directionArrowRef.current = arrow
     sceneRef.current.add(arrow)
+
+    // Store current direction for next comparison
+    previousCameraDirRef.current = currentDir
   }, [currentSweep, cameraDirection])
 
   // Handle click navigation
