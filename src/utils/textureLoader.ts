@@ -43,6 +43,7 @@ async function loadTiledTexture(
   // For single tile (512), just load it directly
   if (tilesPerSide === 1) {
     const loader = new THREE.TextureLoader()
+    loader.crossOrigin = 'anonymous' // Enable CORS for cross-origin images
     const texture = await loader.loadAsync(tileUrls[0])
     texture.colorSpace = THREE.SRGBColorSpace
     texture.minFilter = THREE.NearestFilter
@@ -73,6 +74,7 @@ async function loadTiledTexture(
           success: boolean
         }>((resolve) => {
           const img = new Image()
+          img.crossOrigin = 'anonymous' // Enable CORS for cross-origin images
           img.onload = () =>
             resolve({
               img,
